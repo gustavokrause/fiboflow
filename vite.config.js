@@ -22,8 +22,19 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
+        start_url: '/fiboflow/',
+        scope: '/fiboflow/',
+        orientation: 'portrait',
+        categories: ['games', 'puzzle'],
+        screenshots: [
+          {
+            src: 'screenshot1.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            platform: 'wide',
+            label: 'Game Screenshot'
+          }
+        ],
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -40,7 +51,11 @@ export default defineConfig({
       },
       workbox: {
         globDirectory: 'dist',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        globPatterns: [
+          '**/*.{js,css,html}',
+          'assets/*.{ico,png,svg}',
+          '*.webmanifest'
+        ],
         globIgnores: [
           '**/node_modules/**/*',
           'sw.js',
@@ -60,8 +75,25 @@ export default defineConfig({
                 statuses: [0, 200]
               }
             }
+          },
+          {
+            urlPattern: /^https:\/\/gustavokrause\.github\.io\/fiboflow\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-cache',
+              networkTimeoutSeconds: 10,
+              matchOptions: {
+                ignoreSearch: true
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
-        ]
+        ],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true
       }
     })
   ],
