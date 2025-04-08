@@ -272,7 +272,7 @@ function App() {
               <p className="sequence">
                 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, ...
               </p>
-              <img src="/Fibonacci_Squares.svg" alt="Fibonacci Squares" />
+              <img src="https://pt.wikipedia.org/wiki/Sequ%C3%AAncia_de_Fibonacci#/media/Ficheiro:FibonacciBlocks.svg" alt="Fibonacci Squares" />
               <p className="caption">
                 A tiling with squares whose side lengths are successive
                 Fibonacci numbers: <span>1, 1, 2, 3, 5, 8, 13 and 21</span>
