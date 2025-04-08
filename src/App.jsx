@@ -1,74 +1,57 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "@emotion/styled";
-
-const Box = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-  background-color: ${props => 
-    props.isValidTarget && props.isHardMode ? '#e8f5e9' : 
-    props.isDragging ? '#e0e0ff' : 
-    '#f0f0f0'
-  };
-  font-size: ${props => props.value >= 10 ? '24px' : '32px'};
-  font-weight: bold;
-  color: #333;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  user-select: none;
-  border-radius: 8px;
-  transform: ${props => props.isDragging ? 'scale(1.05)' : 'scale(1)'};
-  box-shadow: ${props => 
-    props.isDragging ? 
-    '0 4px 12px rgba(0, 0, 0, 0.2)' : 
-    'none'
-  };
-
-  @media (max-width: 480px) {
-    width: 70px;
-    height: 70px;
-    font-size: ${props => props.value >= 10 ? '20px' : '28px'};
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 80px);
-  grid-template-rows: repeat(4, 80px);
-  gap: 8px;
-  padding: 12px;
-  background-color: #e1e1e1;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(4, 70px);
-    grid-template-rows: repeat(4, 70px);
-    gap: 6px;
-    padding: 8px;
-  }
-`;
+import DesktopGame from "./components/DesktopGame";
+import MobileGame from "./components/MobileGame";
 
 const Container = styled.div`
-  width: 100vw;
-  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  min-height: 100vh;
   background-color: #f5f5f5;
 `;
 
-const ModeSwitch = styled.button`
-  margin-top: 40px;
+const Title = styled.h1`
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+`;
+
+const ScoreContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const Score = styled.div`
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #333;
+`;
+
+const Multiplier = styled.div`
+  font-size: 0.7rem;
+  color: #666;
+  padding: 4px 8px;
+  background-color: #e8f5e9;
+  border-radius: 4px;
+`;
+
+const ModeSwitch = styled.div`
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+`;
+
+const ModeButton = styled.button`
   padding: 8px 16px;
-  background-color: ${props => props.isHardMode ? '#e8f5e9' : '#f0f0f0'};
+  background-color: ${(props) => (props.active ? "#e8f5e9" : "#f0f0f0")};
   border: 2px solid #333;
   border-radius: 20px;
   font-size: 16px;
@@ -77,136 +60,231 @@ const ModeSwitch = styled.button`
   transition: all 0.2s ease;
 `;
 
-const Title = styled.h1`
-  font-size: 48px;
+const HelpButton = styled.button`
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  border: 2px solid #333;
+  font-size: 16px;
   font-weight: bold;
-  color: #333;
-  margin: 0 0 40px;
-  letter-spacing: 2px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+`;
+
+const HelpModal = styled.div`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 1000;
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+`;
+
+const HelpContent = styled.div`
+  text-align: center;
+
+  p {
+    margin: 10px 0;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .sequence {
+    font-family: monospace;
+    font-size: 18px;
+    color: #333;
+    margin: 10px 0 0;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    margin: 20px 0 5px;
+  }
+
+  .caption {
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 20px;
+    span {
+      display: block;
+      font-weight: bold;
+    }
+  }
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+
+  &:hover {
+    color: #333;
+  }
+`;
+
+const Credits = styled.aside`
+  margin-top: 20px;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #666;
+
+  p {
+    margin: 5px 0;
+  }
+
+  a {
+    display: inline-block;
+    margin-top: 5px;
+  }
 `;
 
 function App() {
-  const [isHardMode, setIsHardMode] = useState(false);
-  const [numbers, setNumbers] = useState(Array(16).fill(null).map((_, i) => ({ 
-    id: i, 
-    value: 1,
-    isDragging: false,
-    isValidTarget: false
-  })));
-  const [draggedId, setDraggedId] = useState(null);
+  const [isHardMode, setIsHardMode] = useState(true);
+  const [showHelp, setShowHelp] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [score, setScore] = useState(0);
+  const [gridState, setGridState] = useState(
+    Array(16)
+      .fill(null)
+      .map((_, i) => ({
+        id: i,
+        value: 1,
+        isDragging: false,
+        isValidTarget: false,
+        isMerged: false,
+      }))
+  );
 
-  // Generate Fibonacci sequence up to 1000 for validation
-  const fibonacciSequence = useMemo(() => {
-    const fib = [1, 1];
-    while (fib[fib.length - 1] < 1000) {
-      fib.push(fib[fib.length - 1] + fib[fib.length - 2]);
-    }
-    return fib;
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const isValidFibonacciMerge = (num1, num2) => {
-    const sum = num1 + num2;
-    return fibonacciSequence.includes(sum);
+  const handleMerge = (resultingNumber) => {
+    const points = resultingNumber * (isHardMode ? 2 : 1);
+    setScore((prevScore) => prevScore + points);
   };
 
-  const mergeTiles = (sourceId, targetId) => {
-    const sourceNumber = numbers.find(n => n.id === sourceId);
-    const targetNumber = numbers.find(n => n.id === targetId);
-    
-    if (isValidFibonacciMerge(sourceNumber.value, targetNumber.value)) {
-      setNumbers(prev => {
-        const newNumbers = [...prev];
-        const sourceIndex = newNumbers.findIndex(n => n.id === sourceId);
-        const targetIndex = newNumbers.findIndex(n => n.id === targetId);
-        
-        newNumbers[targetIndex] = {
-          ...newNumbers[targetIndex],
-          value: newNumbers[sourceIndex].value + newNumbers[targetIndex].value,
-          isValidTarget: false
-        };
-        
-        newNumbers[sourceIndex] = { 
-          ...newNumbers[sourceIndex], 
-          value: 1,
-          isValidTarget: false 
-        };
-        
-        return newNumbers;
-      });
-      return true;
-    }
-    return false;
-  };
-
-  const handleDragStart = (id) => {
-    setDraggedId(id);
-    setNumbers(prev => prev.map(num => {
-      if (num.id === id) {
-        return { ...num, isDragging: true };
-      }
-      // Show valid merge targets
-      const sourceNumber = prev.find(n => n.id === id);
-      return { 
-        ...num, 
-        isValidTarget: num.id !== id && isValidFibonacciMerge(sourceNumber.value, num.value)
-      };
-    }));
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e, targetId) => {
-    e.preventDefault();
-    if (draggedId !== null && draggedId !== targetId) {
-      mergeTiles(draggedId, targetId);
-    }
-    setDraggedId(null);
-    setNumbers(prev => prev.map(num => ({ 
-      ...num, 
-      isDragging: false,
-      isValidTarget: false 
-    })));
-  };
-
-  const handleDragEnd = () => {
-    setDraggedId(null);
-    setNumbers(prev => prev.map(num => ({ 
-      ...num, 
-      isDragging: false,
-      isValidTarget: false 
-    })));
+  const handleModeChange = (newMode) => {
+    setIsHardMode(newMode);
   };
 
   return (
     <Container>
       <Title>FiboFlow</Title>
-      <Grid>
-        {numbers.map((number) => (
-          <Box 
-            key={number.id}
-            data-id={number.id}
-            isDragging={number.isDragging}
-            isValidTarget={number.isValidTarget}
-            isHardMode={isHardMode}
-            draggable="true"
-            onDragStart={() => handleDragStart(number.id)}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, number.id)}
-            onDragEnd={handleDragEnd}
-          >
-            {number.value}
-          </Box>
-        ))}
-      </Grid>
-      <ModeSwitch 
-        isHardMode={isHardMode}
-        onClick={() => setIsHardMode(!isHardMode)}
-      >
-        {!isHardMode ? 'Hard Mode' : 'Easy Mode'}
+      <ModeSwitch>
+        <ModeButton active={isHardMode} onClick={() => handleModeChange(true)}>
+          Hard Mode
+        </ModeButton>
+        <ModeButton
+          active={!isHardMode}
+          onClick={() => handleModeChange(false)}
+        >
+          Easy Mode
+        </ModeButton>
       </ModeSwitch>
+      <ScoreContainer>
+        <Score>Score: {score}</Score>
+        <Multiplier>Multiplier: {isHardMode ? "2x" : "1x"}</Multiplier>
+      </ScoreContainer>
+      {isMobile ? (
+        <MobileGame
+          isHardMode={isHardMode}
+          onMerge={handleMerge}
+          gridState={gridState}
+          onGridStateChange={setGridState}
+        />
+      ) : (
+        <DesktopGame
+          isHardMode={isHardMode}
+          onMerge={handleMerge}
+          gridState={gridState}
+          onGridStateChange={setGridState}
+        />
+      )}
+      <HelpButton onClick={() => setShowHelp(true)}>?</HelpButton>
+
+      <Credits>
+        <p>Created by Gustavo Krause © 2025</p>
+        <p>Licensed under CC BY-NC 4.0</p>
+        <a
+          href="https://creativecommons.org/licenses/by-nc/4.0/"
+          target="_blank"
+          rel="noopener"
+        >
+          <img
+            src="https://licensebuttons.net/l/by-nc/4.0/88x31.png"
+            alt="Creative Commons License"
+          />
+        </a>
+      </Credits>
+
+      {showHelp && (
+        <>
+          <Overlay onClick={() => setShowHelp(false)} />
+          <HelpModal>
+            <CloseButton onClick={() => setShowHelp(false)}>
+              &times;
+            </CloseButton>
+            <HelpContent>
+              <p>
+                The Fibonacci sequence is a sequence in which each element is
+                the sum of the two elements that precede it.
+              </p>
+              <p className="sequence">
+                1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, ...
+              </p>
+              <img src="/Fibonacci_Squares.svg" alt="Fibonacci Squares" />
+              <p className="caption">
+                A tiling with squares whose side lengths are successive
+                Fibonacci numbers: <span>1, 1, 2, 3, 5, 8, 13 and 21</span>
+              </p>
+              <p>
+                In this game, you will be given a sequence of numbers. Your goal
+                is to merge the numbers to form the next number in the sequence.
+              </p>
+            </HelpContent>
+          </HelpModal>
+        </>
+      )}
     </Container>
   );
 }
