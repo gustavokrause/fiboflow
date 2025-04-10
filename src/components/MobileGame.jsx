@@ -55,13 +55,16 @@ function MobileGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
   const [draggedTile, setDraggedTile] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
 
+  // Generate Fibonacci sequence dynamically based on the current grid state
   const fibonacciSequence = useMemo(() => {
     const fib = [1, 1];
-    while (fib[fib.length - 1] < 1000) {
+    // Find the maximum possible sum in the current grid
+    const maxPossibleSum = Math.max(...gridState.map(n => n.value)) * 2;
+    while (fib[fib.length - 1] < maxPossibleSum) {
       fib.push(fib[fib.length - 1] + fib[fib.length - 2]);
     }
     return fib;
-  }, []);
+  }, [gridState]);
 
   const isValidFibonacciMerge = useCallback(
     (num1, num2) => {

@@ -48,14 +48,16 @@ const DesktopGrid = styled.div`
 function DesktopGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
   const [draggedId, setDraggedId] = useState(null);
 
-  // Generate Fibonacci sequence up to 1000 for validation
+  // Generate Fibonacci sequence dynamically based on the current grid state
   const fibonacciSequence = useMemo(() => {
     const fib = [1, 1];
-    while (fib[fib.length - 1] < 1000) {
+    // Find the maximum possible sum in the current grid
+    const maxPossibleSum = Math.max(...gridState.map(n => n.value)) * 2;
+    while (fib[fib.length - 1] < maxPossibleSum) {
       fib.push(fib[fib.length - 1] + fib[fib.length - 2]);
     }
     return fib;
-  }, []);
+  }, [gridState]);
 
   const isValidFibonacciMerge = (num1, num2) => {
     const sum = num1 + num2;
