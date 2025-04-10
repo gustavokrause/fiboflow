@@ -37,8 +37,8 @@ const MobileBox = styled.div`
 
 const MobileGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 70px);
-  grid-template-rows: repeat(4, 70px);
+  grid-template-columns: repeat(${props => props.isExtreme ? 3 : 4}, 70px);
+  grid-template-rows: repeat(${props => props.isExtreme ? 3 : 4}, 70px);
   gap: 6px;
   padding: 8px;
   background-color: #e1e1e1;
@@ -51,7 +51,7 @@ const MobileGrid = styled.div`
   touch-action: none;
 `;
 
-function MobileGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
+function MobileGame({ isHardMode, isExtreme, onMerge, gridState, onGridStateChange }) {
   const [draggedTile, setDraggedTile] = useState(null);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
 
@@ -184,6 +184,7 @@ function MobileGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
 
   return (
     <MobileGrid
+      isExtreme={isExtreme}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
@@ -199,8 +200,8 @@ function MobileGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
             onTouchStart={(e) => handleTouchStart(e, number.id)}
             style={{
               opacity: number.isDragging ? 0.5 : 1,
-              gridColumn: Math.floor(number.id % 4) + 1,
-              gridRow: Math.floor(number.id / 4) + 1,
+              gridColumn: Math.floor(number.id % (isExtreme ? 3 : 4)) + 1,
+              gridRow: Math.floor(number.id / (isExtreme ? 3 : 4)) + 1,
             }}
           >
             {number.value}

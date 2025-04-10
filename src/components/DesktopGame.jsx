@@ -36,8 +36,8 @@ const DesktopBox = styled.div`
 
 const DesktopGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 80px);
-  grid-template-rows: repeat(4, 80px);
+  grid-template-columns: repeat(${props => props.isExtreme ? 3 : 4}, 80px);
+  grid-template-rows: repeat(${props => props.isExtreme ? 3 : 4}, 80px);
   gap: 8px;
   padding: 12px;
   background-color: #e1e1e1;
@@ -45,7 +45,7 @@ const DesktopGrid = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 `;
 
-function DesktopGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
+function DesktopGame({ isHardMode, isExtreme, onMerge, gridState, onGridStateChange }) {
   const [draggedId, setDraggedId] = useState(null);
 
   // Generate Fibonacci sequence dynamically based on the current grid state
@@ -145,7 +145,7 @@ function DesktopGame({ isHardMode, onMerge, gridState, onGridStateChange }) {
   };
 
   return (
-    <DesktopGrid>
+    <DesktopGrid isExtreme={isExtreme}>
       {gridState.map((number) => (
         <DesktopBox 
           key={number.id}

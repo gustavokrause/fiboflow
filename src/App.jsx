@@ -43,21 +43,53 @@ const Multiplier = styled.div`
   border-radius: 4px;
 `;
 
+const Timer = styled.div`
+  font-size: 0.7rem;
+  color: #666;
+  padding: 4px 8px;
+  background-color: #e8f5e9;
+  border-radius: 4px;
+`;
+
 const ModeSwitch = styled.div`
   display: flex;
-  gap: 20px;
+  gap: 8px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 400px;
 `;
 
 const ModeButton = styled.button`
+  padding: 6px 10px;
+  background-color: ${(props) => {
+    if (props.disabled) return '#f0f0f0';
+    return props.active ? '#e8f5e9' : '#f0f0f0';
+  }};
+  border: 2px solid ${(props) => props.disabled ? '#ccc' : '#333'};
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: ${(props) => props.disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s ease;
+  min-width: 66px;
+  color: ${(props) => props.disabled ? '#999' : '#333'};
+`;
+
+const RestartButton = styled.button`
   padding: 8px 16px;
-  background-color: ${(props) => (props.active ? "#e8f5e9" : "#f0f0f0")};
+  background-color: #f0f0f0;
   border: 2px solid #333;
   border-radius: 20px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-left: auto;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
 `;
 
 const HelpButton = styled.button`
@@ -170,13 +202,73 @@ const Credits = styled.aside`
   }
 `;
 
+const GameOverContainer = styled.div`
+  text-align: center;
+  padding: 20px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+`;
+
+const GameOverTitle = styled.h2`
+  color: #333;
+  margin: 0 0 16px;
+`;
+
+const GameOverScore = styled.div`
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 20px;
+`;
+
+const GameOverButton = styled.button`
+  padding: 12px 24px;
+  background-color: #e8f5e9;
+  border: 2px solid #333;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #d8f0d9;
+  }
+`;
+
+const getTimeForMode = (mode) => {
+  switch (mode) {
+    case 'easy': return 60;
+    case 'hard': return 30;
+    case 'veryHard': return 10;
+    case 'extreme': return 5;
+    default: return 60;
+  }
+};
+
+const getMultiplierForMode = (mode) => {
+  switch (mode) {
+    case 'easy': return 1;
+    case 'hard': return 2;
+    case 'veryHard': return 3;
+    case 'extreme': return 4;
+    default: return 1;
+  }
+};
+
 function App() {
-  const [isHardMode, setIsHardMode] = useState(true);
+  const [gameMode, setGameMode] = useState('easy'); // 'easy', 'hard', 'veryHard', 'extreme'
   const [showHelp, setShowHelp] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [score, setScore] = useState(0);
-  const [gridState, setGridState] = useState(
-    Array(16)
+  const [time, setTime] = useState(getTimeForMode('easy'));
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [startedInExtreme, setStartedInExtreme] = useState(false);
+  const [gridState, setGridState] = useState(() => {
+    const isExtreme = gameMode === 'extreme';
+    return Array(isExtreme ? 9 : 16)
       .fill(null)
       .map((_, i) => ({
         id: i,
@@ -184,8 +276,8 @@ function App() {
         isDragging: false,
         isValidTarget: false,
         isMerged: false,
-      }))
-  );
+      }));
+  });
 
   useEffect(() => {
     const checkMobile = () => {
@@ -198,47 +290,156 @@ function App() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  useEffect(() => {
+    if (gameStarted && time > 0 && !isGameOver) {
+      const timer = setInterval(() => {
+        setTime(prevTime => prevTime - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    } else if (time === 0 && !isGameOver) {
+      setIsGameOver(true);
+    }
+  }, [time, isGameOver, gameStarted]);
+
+  // Update grid when game mode changes and game hasn't started
+  useEffect(() => {
+    if (!gameStarted) {
+      setGridState(
+        Array(gameMode === 'extreme' ? 9 : 16)
+          .fill(null)
+          .map((_, i) => ({
+            id: i,
+            value: 1,
+            isDragging: false,
+            isValidTarget: false,
+            isMerged: false,
+          }))
+      );
+    }
+  }, [gameMode, gameStarted]);
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   const handleMerge = (resultingNumber) => {
-    const points = resultingNumber * (isHardMode ? 2 : 1);
+    const points = resultingNumber * getMultiplierForMode(gameMode);
     setScore((prevScore) => prevScore + points);
+    setTime(getTimeForMode(gameMode));
+    if (!gameStarted) {
+      setGameStarted(true);
+      setStartedInExtreme(gameMode === 'extreme');
+    }
   };
 
   const handleModeChange = (newMode) => {
-    setIsHardMode(newMode);
+    // Don't do anything if selecting the same mode
+    if (newMode === gameMode) {
+      return;
+    }
+
+    // Only block mode changes if the game has started
+    if (gameStarted) {
+      // If started in extreme, only allow extreme
+      if (startedInExtreme && newMode !== 'extreme') {
+        return;
+      }
+      // If not started in extreme, don't allow switching to extreme
+      if (!startedInExtreme && newMode === 'extreme') {
+        return;
+      }
+    }
+    
+    setGameMode(newMode);
+    setTime(getTimeForMode(newMode));
+  };
+
+  const handleRestart = () => {
+    setScore(0);
+    setTime(getTimeForMode(gameMode));
+    setGameStarted(false);
+    setIsGameOver(false);
+    setStartedInExtreme(false);
+    setGridState(
+      Array(gameMode === 'extreme' ? 9 : 16)
+        .fill(null)
+        .map((_, i) => ({
+          id: i,
+          value: 1,
+          isDragging: false,
+          isValidTarget: false,
+          isMerged: false,
+        }))
+    );
   };
 
   return (
     <Container>
       <Title>FiboFlow</Title>
       <ModeSwitch>
-        <ModeButton active={isHardMode} onClick={() => handleModeChange(true)}>
-          Hard Mode
-        </ModeButton>
-        <ModeButton
-          active={!isHardMode}
-          onClick={() => handleModeChange(false)}
+        <ModeButton 
+          active={gameMode === 'easy'} 
+          onClick={() => handleModeChange('easy')}
+          disabled={startedInExtreme}
         >
-          Easy Mode
+          Easy
+        </ModeButton>
+        <ModeButton 
+          active={gameMode === 'hard'} 
+          onClick={() => handleModeChange('hard')}
+          disabled={startedInExtreme}
+        >
+          Hard
+        </ModeButton>
+        <ModeButton 
+          active={gameMode === 'veryHard'} 
+          onClick={() => handleModeChange('veryHard')}
+          disabled={startedInExtreme}
+        >
+          Very Hard
+        </ModeButton>
+        <ModeButton 
+          active={gameMode === 'extreme'} 
+          onClick={() => handleModeChange('extreme')}
+          disabled={gameStarted && gameMode !== 'extreme'}
+        >
+          Extreme
         </ModeButton>
       </ModeSwitch>
       <ScoreContainer>
         <Score>Score: {score}</Score>
-        <Multiplier>Multiplier: {isHardMode ? "2x" : "1x"}</Multiplier>
+        <Multiplier>Multiplier: {getMultiplierForMode(gameMode)}x</Multiplier>
+        <Timer>Time: {gameStarted ? formatTime(time) : formatTime(getTimeForMode(gameMode))}</Timer>
       </ScoreContainer>
-      {isMobile ? (
-        <MobileGame
-          isHardMode={isHardMode}
-          onMerge={handleMerge}
-          gridState={gridState}
-          onGridStateChange={setGridState}
-        />
+      {isGameOver ? (
+        <GameOverContainer>
+          <GameOverTitle>Game Over!</GameOverTitle>
+          <GameOverScore>Final Score: {score}</GameOverScore>
+          <GameOverButton onClick={handleRestart}>
+            Play Again
+          </GameOverButton>
+        </GameOverContainer>
       ) : (
-        <DesktopGame
-          isHardMode={isHardMode}
-          onMerge={handleMerge}
-          gridState={gridState}
-          onGridStateChange={setGridState}
-        />
+        isMobile ? (
+          <MobileGame
+            isHardMode={gameMode !== 'easy'}
+            isExtreme={gameMode === 'extreme'}
+            onMerge={handleMerge}
+            gridState={gridState}
+            onGridStateChange={setGridState}
+          />
+        ) : (
+          <DesktopGame
+            isHardMode={gameMode !== 'easy'}
+            isExtreme={gameMode === 'extreme'}
+            onMerge={handleMerge}
+            gridState={gridState}
+            onGridStateChange={setGridState}
+          />
+        )
       )}
       <HelpButton onClick={() => setShowHelp(true)}>?</HelpButton>
 
